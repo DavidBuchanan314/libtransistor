@@ -7,9 +7,11 @@ endif
 #SYS_INCLUDES := -isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/sys/switch/include/ -isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/sys/switch/ -isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/include/
 SYS_INCLUDES := -isystem $(LIBTRANSISTOR_HOME)/openlibm/include \
 	-isystem $(LIBTRANSISTOR_HOME)/pthread/include \
+	-isystem $(LIBTRANSISTOR_HOME)/build/newlib/aarch64-none-switch/newlib/targ-include/ \
 	-isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/sys/switch/include/ \
 	-isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/sys/switch/ \
 	-isystem $(LIBTRANSISTOR_HOME)/newlib/newlib/libc/include/
+
 CPP_INCLUDES := -isystem $(LIBTRANSISTOR_HOME)/libcxx/include -isystem $(LIBTRANSISTOR_HOME)/libcxxabi/include -isystem $(LIBTRANSISTOR_HOME)/libunwind/include
 
 INCLUDES := $(SYS_INCLUDES) -I$(LIBTRANSISTOR_HOME)/include/ -I $(LIBTRANSISTOR_HOME)/build/sdl2_install/include/
