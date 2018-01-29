@@ -60,6 +60,8 @@ sqfs_err sqfs_blocklist_next(sqfs_blocklist *bl);
 sqfs_err sqfs_read_range(sqfs *fs, sqfs_inode *inode, sqfs_off_t start,
 	sqfs_off_t *size, void *buf);
 
+sqfs_err sqfs_write_range(sqfs *fs, sqfs_inode *inode, sqfs_off_t start,
+	sqfs_off_t *size, void *buf);
 
 /*** Block index for skipping to the middle of large files ***/
 

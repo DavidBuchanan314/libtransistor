@@ -194,6 +194,92 @@ sqfs_err sqfs_read_range(sqfs *fs, sqfs_inode *inode, sqfs_off_t start,
 }
 
 
+sqfs_err sqfs_write_range(sqfs *fs, sqfs_inode *inode, sqfs_off_t start,
+		sqfs_off_t *size, void *buf) {
+	sqfs_err err = SQFS_OK;
+	
+	sqfs_off_t file_size;
+	size_t block_size;
+	sqfs_blocklist bl;
+	
+	size_t read_off;
+	char *buf_orig;
+	
+	if (!S_ISREG(inode->base.mode))
+		return SQFS_ERR;
+	
+	file_size = inode->xtra.reg.file_size;
+	block_size = fs->sb.block_size;
+	
+	if (*size < 0 || start > file_size)
+		return SQFS_ERR;
+	if (start == file_size) {
+		*size = 0;
+		return SQFS_OK;
+	}
+	
+	err = sqfs_blockidx_blocklist(fs, inode, &bl, start);
+	if (err)
+		return err;
+	
+	read_off = start % block_size;
+	buf_orig = buf;
+	while (*size > 0) {
+		sqfs_block *block = NULL;
+		size_t data_off, data_size;
+		size_t take;
+		
+		bool fragment = (bl.remain == 0);
+		if (fragment) { /* fragment */
+			if (inode->xtra.reg.frag_idx == SQUASHFS_INVALID_FRAG)
+				break;
+			err = sqfs_frag_block(fs, inode, &data_off, &data_size, &block);
+			if (err)
+				return err;
+		} else {			
+			if ((err = sqfs_blocklist_next(&bl)))
+				return err;
+			if (bl.pos + block_size <= start)
+				continue;
+			
+			data_off = 0;
+			if (bl.input_size == 0) { /* Hole! */
+				data_size = (size_t)(file_size - bl.pos);
+				if (data_size > block_size)
+					data_size = block_size;
+			} else {
+				err = sqfs_data_cache(fs, &fs->data_cache, bl.block,
+					bl.header, &block);
+				if (err)
+					return err;
+				data_size = block->size;
+			}
+		}
+		
+		take = data_size - read_off;
+		if (take > *size)
+			take = (size_t)(*size);
+		if (block) {
+			/* XXX: I just switched the src and dest arguments */
+			memcpy((char*)block->data + data_off + read_off, buf, take);
+			/* BLOCK CACHED, DON'T DISPOSE */
+		} else {
+			//memset(buf, 0, take);
+		}
+		read_off = 0;
+		*size -= take;
+		buf = (char*)buf + take;
+		
+		if (fragment)
+			break;
+	}
+	
+	*size = (char*)buf - buf_orig;
+	return *size ? SQFS_OK : SQFS_ERR;
+}
+
+
+
 /*
 To read block N of a M-block file, we have to read N blocksizes from the,
 metadata. This is a lot of work for large files! So for those files, we use

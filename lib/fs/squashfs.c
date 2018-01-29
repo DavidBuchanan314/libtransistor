@@ -101,11 +101,17 @@ static ssize_t trn_sqfs_file_read(void *data, char *buf, size_t size) {
 }
 
 static ssize_t trn_sqfs_file_write(void *data, const char *buf, size_t size) {
-	return -EROFS;
+	trn_sqfs_file_t *file = data;
+	off_t osize = size;
+	if(sqfs_write_range(file->fs, &file->inode, file->head, &osize, buf)) {
+		return -EIO;
+	}
+	file->head+= osize;
+	return osize;
 }
 
 static int trn_sqfs_file_flush(void *data) {
-	return -EROFS;
+	return 0;
 }
 
 static int trn_sqfs_file_release(struct file *f) {
