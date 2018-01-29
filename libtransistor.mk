@@ -27,7 +27,7 @@ AS := $(LLVM_BINDIR)/llvm-mc
 AR := $(LLVM_BINDIR)/llvm-ar
 RANLIB := $(LLVM_BINDIR)/llvm-ranlib
 LD_FLAGS := -Bsymbolic --shared --emit-relocs --no-gc-sections --no-undefined -T $(LIBTRANSISTOR_HOME)/link.T -L $(LIBTRANSISTOR_HOME)/build/newlib/aarch64-none-switch/newlib/ -L $(LIBTRANSISTOR_HOME)/build/compiler-rt/lib/linux/ -L $(LIBTRANSISTOR_HOME)/build/sdl2_install/lib/ -error-limit=0
-CC_FLAGS := -g -fPIC -ffreestanding -fexceptions -fuse-ld=lld -fstack-protector-strong -O3 -mtune=cortex-a53 -target aarch64-none-linux-gnu -nostdlib -nostdlibinc $(INCLUDES) -D__SWITCH__=1 $(WARNINGS)
+CC_FLAGS := -g -fPIC -ffreestanding --emit-relocs -fexceptions -fuse-ld=lld -fstack-protector-strong -O3 -mtune=cortex-a53 -target aarch64-none-linux-gnu -nostdlib -nostdlibinc $(INCLUDES) -D__SWITCH__=1 $(WARNINGS)
 #CXX_FLAGS := $(CC_FLAGS) -std=c++11 -stdlib=libc++ -nodefaultlibs -nostdinc++ $(CPP_INCLUDES)
 CXX_FLAGS := $(CC_FLAGS) -stdlib=libc++ -nodefaultlibs -nostdinc++ $(CPP_INCLUDES) -fno-exceptions
 CXXFLAGS := $(CXX_FLAGS)
