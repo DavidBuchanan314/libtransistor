@@ -26,10 +26,10 @@ addons:
       - llvm-5.0-dev
       - lld-5.0
       - liblz4-dev
+      - squashfs-tools
       - graphviz
       - python3
       - python3-pip
-
 install:
     # Download and install recent cmake
     - |

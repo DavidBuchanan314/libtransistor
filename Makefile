@@ -1,7 +1,7 @@
 include libtransistor.mk
 
-libtransistor_TESTS := malloc bsd_ai_packing bsd sfdnsres nv helloworld hid hexdump args ssp stdin multiple_set_heap_size vi gpu display am sdl audio_output init_fini_arrays ipc_server pthread cpp
-libtransistor_OBJECT_NAMES := crt0_common.o svc.o ipc.o tls.o util.o ipc/sm.o ipc/bsd.o ipc/nv.o ipc/hid.o ipc/ro.o ipc/nifm.o hid.o ipc/vi.o display/binder.o display/parcel.o display/surface.o gpu/gpu.o ipc/am.o display/graphic_buffer_queue.o display/display.o gfx/blit.o ipc/time.o syscalls/syscalls.o syscalls/fd.o syscalls/sched.o syscalls/socket.o ipc/audio.o ipc/bpc.o ipcserver.o strtold.o
+libtransistor_TESTS := malloc bsd_ai_packing bsd sfdnsres nv helloworld hid hexdump args ssp stdin multiple_set_heap_size vi gpu display am sdl sqfs_img audio_output init_fini_arrays fs_releases_inodes ipc_server pthread cpp
+libtransistor_OBJECT_NAMES := crt0_common.o svc.o ipc.o tls.o util.o ipc/sm.o ipc/bsd.o ipc/nv.o ipc/hid.o ipc/ro.o ipc/nifm.o hid.o ipc/vi.o display/binder.o display/parcel.o display/surface.o gpu/gpu.o ipc/am.o display/graphic_buffer_queue.o display/display.o gfx/blit.o ipc/time.o syscalls/syscalls.o syscalls/fd.o syscalls/sched.o syscalls/socket.o lz4.o squashfs/cache.o squashfs/decompress.o squashfs/dir.o squashfs/file.o squashfs/fs.o squashfs/hash.o squashfs/nonstd-pread.o squashfs/nonstd-stat.o squashfs/stack.o squashfs/swap.o squashfs/table.o squashfs/traverse.o squashfs/util.o squashfs/xattr.o fs/blobfd.o fs/squashfs.o fs/fs.o ipc/audio.o ipc/bpc.o ipcserver.o strtold.o
 libtransistor_OBJECT_FILES := $(addprefix $(LIBTRANSISTOR_HOME)/build/lib/,$(libtransistor_OBJECT_NAMES))
 
 pthread_SRCS=	rthread_attr.c rthread_barrier.c rthread_barrier_attr.c rthread_cond.c rthread_condattr.c rthread_debug.c rthread_getcpuclockid.c rthread_internal.c rthread_mutex.c rthread_mutex_prio.c rthread_mutexattr.c rthread_once.c rthread_rwlock.c rthread_rwlockattr.c rthread_sched.c rthread_sem.c rthread_sig.c rthread_spin_lock.c rthread_thread.c rthread_tls.c sched_prio.c sys/switch/phal.c
@@ -33,7 +33,7 @@ all: $(LIBTRANSISTOR_HOME)/build/lib/libtransistor.nro.a \
 	$(addprefix $(LIBTRANSISTOR_HOME)/build/test/test_,$(addsuffix .nro.so,$(libtransistor_TESTS))) \
 	$(addprefix $(LIBTRANSISTOR_HOME)/build/test/test_,$(addsuffix .nso.so,$(libtransistor_TESTS)))
 
-run_tests: run_helloworld_test run_hexdump_test run_malloc_test run_bsd_ai_packing_test run_bsd_test run_sfdnsres_test run_multiple_set_heap_size_test run_init_fini_arrays_test run_cpp_test
+run_tests: run_helloworld_test run_hexdump_test run_malloc_test run_bsd_ai_packing_test run_bsd_test run_sfdnsres_test run_multiple_set_heap_size_test run_init_fini_arrays_test run_fs_releases_inodes_test run_cpp_test
 
 run_bsd_test: $(LIBTRANSISTOR_HOME)/build/test/test_bsd.nro $(LIBTRANSISTOR_HOME)/test_helpers/bsd.rb
 	$(RUBY) $(LIBTRANSISTOR_HOME)/test_helpers/bsd.rb $(MEPHISTO)
@@ -47,6 +47,8 @@ run_ssp_test: $(LIBTRANSISTOR_HOME)/build/test/test_ssp.nro
 run_%_test: $(LIBTRANSISTOR_HOME)/build/test/test_%.nro
 	$(MEPHISTO) --load-nro $<
 
+.SECONDARY:
+
 $(LIBTRANSISTOR_HOME)/build/test/%.o: $(LIBTRANSISTOR_HOME)/test/%.c $(LIBTRANSISTOR_HOME)/build/sdl2_install/lib/libSDL2.a
 	mkdir -p $(@D)
 	$(CC) $(CC_FLAGS) -c -o $@ $<
@@ -54,6 +56,21 @@ $(LIBTRANSISTOR_HOME)/build/test/%.o: $(LIBTRANSISTOR_HOME)/test/%.c $(LIBTRANSI
 $(LIBTRANSISTOR_HOME)/build/test/%.o: $(LIBTRANSISTOR_HOME)/test/%.cpp $(CXX_LIBS)
 	mkdir -p $(@D)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+
+$(LIBTRANSISTOR_HOME)/build/test/%.squashfs.o: $(LIBTRANSISTOR_HOME)/build/test/%.squashfs
+	mkdir -p $(@D)
+	$(LD) -s -r -b binary -m aarch64elf -T $(LIBTRANSISTOR_HOME)/fs.T -o $@ $<
+
+$(LIBTRANSISTOR_HOME)/build/empty_file:
+	touch $@
+
+$(LIBTRANSISTOR_HOME)/build/test/%.squashfs: $(LIBTRANSISTOR_HOME)/test/fs_%/*
+	mkdir -p $(@D)
+	mksquashfs $^ $@ -comp lz4 -nopad -noappend
+
+$(LIBTRANSISTOR_HOME)/build/test/%.squashfs: $(LIBTRANSISTOR_HOME)/build/empty_file
+	mkdir -p $(@D)
+	mksquashfs $^ $@ -comp lz4 -nopad -noappend
 
 # Disable stack protector for crt0_common
 $(LIBTRANSISTOR_HOME)/build/lib/crt0_common.o: $(LIBTRANSISTOR_HOME)/lib/crt0_common.c
@@ -77,13 +94,13 @@ $(LIBTRANSISTOR_HOME)/build/openlibm/%.o: $(LIBTRANSISTOR_HOME)/openlibm/src/%.c
 	mkdir -p $(@D)
 	$(CC) $(CC_FLAGS) -c -o $@ $<
 
-$(LIBTRANSISTOR_HOME)/build/test/%.nro.so: $(LIBTRANSISTOR_HOME)/build/test/%.o $(LIBTRANSISTOR_NRO_LIB) $(LIBTRANSISTOR_COMMON_LIBS)
+$(LIBTRANSISTOR_HOME)/build/test/%.nro.so: $(LIBTRANSISTOR_HOME)/build/test/%.o $(LIBTRANSISTOR_HOME)/build/test/%.squashfs.o $(LIBTRANSISTOR_NRO_LIB) $(LIBTRANSISTOR_COMMON_LIBS)
 	mkdir -p $(@D)
-	$(LD) --verbose $(LD_FLAGS) -o $@ $< $(LIBTRANSISTOR_NRO_LDFLAGS)
+	$(LD) --verbose $(LD_FLAGS) -o $@ $< $(LIBTRANSISTOR_HOME)/build/test/$*.squashfs.o $(LIBTRANSISTOR_NRO_LDFLAGS)
 
-$(LIBTRANSISTOR_HOME)/build/test/%.nso.so: $(LIBTRANSISTOR_HOME)/build/test/%.o $(LIBTRANSISTOR_NSO_LIB) $(LIBTRANSISTOR_COMMON_LIBS)
+$(LIBTRANSISTOR_HOME)/build/test/%.nso.so: $(LIBTRANSISTOR_HOME)/build/test/%.o $(LIBTRANSISTOR_HOME)/build/test/%.squashfs.o $(LIBTRANSISTOR_NSO_LIB) $(LIBTRANSISTOR_COMMON_LIBS)
 	mkdir -p $(@D)
-	$(LD) --verbose $(LD_FLAGS) -o $@ $< $(LIBTRANSISTOR_NSO_LDFLAGS)
+	$(LD) --verbose $(LD_FLAGS) -o $@ $< $(LIBTRANSISTOR_HOME)/build/test/$*.squashfs.o $(LIBTRANSISTOR_NSO_LDFLAGS)
 
 $(LIBTRANSISTOR_NRO_LIB): $(LIBTRANSISTOR_HOME)/build/lib/crt0.nro.o $(libtransistor_OBJECT_FILES)
 	mkdir -p $(@D)
@@ -149,6 +166,7 @@ $(LIBTRANSISTOR_HOME)/build/libcxx/Makefile: $(LIBTRANSISTOR_HOME)/build/newlib/
 	mkdir -p $(@D)
 	cd $(@D); cmake -G "Unix Makefiles" $(LIBTRANSISTOR_HOME)/libcxx \
 		-DLIBCXX_ENABLE_SHARED=NO \
+		-DLIBCXX_ENABLE_EXCEPTIONS=NO \
 		-DLIBCXX_USE_COMPILER_RT=ON \
 		-DLIBCXX_CXX_ABI=libcxxabi \
 		-DLIBCXX_CXX_ABI_INCLUDE_PATHS=$(LIBTRANSISTOR_HOME)/libcxxabi/include \
@@ -169,6 +187,7 @@ $(LIBTRANSISTOR_HOME)/build/libcxxabi/Makefile: $(LIBCXX_LIB)
 	cd $(@D); cmake -G "Unix Makefiles" $(LIBTRANSISTOR_HOME)/libcxxabi \
 		-DLIBCXXABI_USE_LLVM_UNWINDER=ON \
 		-DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
+		-DLIBCXXABI_ENABLE_EXCEPTIONS=NO \
 		-DLIBCXXABI_LIBCXX_LIBRARY_PATH="$(LIBTRANSISTOR_HOME)/build/libcxx/lib" \
 		-DLIBCXXABI_LIBCXX_INCLUDES="$(LIBTRANSISTOR_HOME)/libcxx/include" \
 		-DLIBCXXABI_ENABLE_SHARED=OFF \

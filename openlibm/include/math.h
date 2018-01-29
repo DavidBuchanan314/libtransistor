@@ -14,6 +14,8 @@
  * $FreeBSD: src/lib/msun/src/openlibm.h,v 1.82 2011/11/12 19:55:48 theraven Exp $
  */
 
+#include <sys/features.h>
+
 #ifdef OPENLIBM_USE_HOST_MATH_H
 #include <math.h>
 #else /* !OPENLIBM_USE_HOST_MATH_H */

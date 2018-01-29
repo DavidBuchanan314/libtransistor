@@ -63,7 +63,7 @@ def main(input, output, format='nro'):
 					replace(tgt, iter['r_offset'], struct.pack('<Q', symbols[symname] + iter['r_addend']))
 				else:
 					print('Unknown relocation type! offset = %x, info = %x, info_sym = %d, info_type = %s, symvalue = %x, symname = %s' % (iter['r_offset'], iter['r_info'], iter['r_info_sym'], reloc_type, symbolValues[symname], symname + " + " + str(iter['r_addend'])))
-					assert False
+					#assert False
 
 		text, rodata, data = csec['text'], csec['rodata'], csec['data']
 
