@@ -76,11 +76,12 @@ off_t _lseek_r(struct _reent *reent, int file, off_t pos, int whence) {
 }
 
 int _open_r(struct _reent *reent, const char *name, int flags, int mode) {
-	errno = ENOENT; // XXX pre-emptive
+	reent->_errno = ENOENT; // XXX pre-emptive
 	return fsnet_open(name, flags, mode);
 }
 
 ssize_t _read_r(struct _reent *reent, int file, void *ptr, size_t len) {
+	reent->_errno = EBADF; // XXX pre-emptive
 	return fsnet_read(file, ptr, len);
 }
 
@@ -140,6 +141,7 @@ int _wait_r(struct _reent *reent, int *status) {
 
 ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len) {
 	if (file > 2) {
+		reent->_errno = EBADF; // XXX pre-emptive
 		return fsnet_write(file, ptr, len);
 	}
 	ssize_t res = 0;
