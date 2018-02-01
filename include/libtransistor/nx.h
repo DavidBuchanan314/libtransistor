@@ -29,6 +29,7 @@ extern "C" {
 #include<libtransistor/hid.h>
 #include<libtransistor/gfx/gfx.h>
 #include<libtransistor/audio.h>
+#include<libtransistor/fs/fsnet.h>
 	
 #ifdef __cplusplus
 }

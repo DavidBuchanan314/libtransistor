@@ -6,8 +6,11 @@
 #include <sys/errno.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <malloc.h>
+#include <string.h>
 #include <reent.h>
 
 #include<libtransistor/loader_config.h>
@@ -15,6 +18,7 @@
 #include<libtransistor/tls.h>
 #include<libtransistor/fd.h>
 #include<libtransistor/ipc/time.h>
+#include<libtransistor/fs/fsnet.h>
 
 void _exit(); // implemented in libtransistor crt0
 
@@ -27,12 +31,7 @@ struct _reent *__getreent() {
 }
 
 int _close_r(struct _reent *reent, int file) {
-	int res = fd_close(file);
-	if (res < 0) {
-		reent->_errno = -res;
-		return -1;
-	}
-	return 0;
+	return fsnet_close(file);
 }
 
 char *_environ[] = {NULL};
@@ -73,54 +72,16 @@ int _link_r(struct _reent *reent, const char *old, const char *new) {
 }
 
 off_t _lseek_r(struct _reent *reent, int file, off_t pos, int whence) {
-	ssize_t res = 0;
-
-	struct file *f = fd_file_get(file);
-	if (f == NULL) {
-		reent->_errno = EBADF;
-		return -1;
-	}
-
-	if (f->ops->llseek == NULL) {
-		res = -ENOSYS;
-		goto finalize;
-	}
-	res = f->ops->llseek(f->data, pos, whence);
-finalize:
-	fd_file_put(f);
-	if (res < 0) {
-		reent->_errno = -res;
-		return -1;
-	}
-	return res;
+	return fsnet_lseek(file, pos, whence);
 }
 
 int _open_r(struct _reent *reent, const char *name, int flags, int mode) {
-	reent->_errno = ENOSYS;
-	return -1;
+	errno = ENOENT; // XXX pre-emptive
+	return fsnet_open(name, flags, mode);
 }
 
 ssize_t _read_r(struct _reent *reent, int file, void *ptr, size_t len) {
-	ssize_t res = 0;
-
-	struct file *f = fd_file_get(file);
-	if (f == NULL) {
-		reent->_errno = EBADF;
-		return -1;
-	}
-
-	if (f->ops->read == NULL) {
-		res = -ENOSYS;
-		goto finalize;
-	}
-	res = f->ops->read(f->data, (char*)ptr, len);
-finalize:
-	fd_file_put(f);
-	if (res < 0) {
-		reent->_errno = -res;
-		return -1;
-	}
-	return res;
+	return fsnet_read(file, ptr, len);
 }
 
 static size_t data_size = 0;
@@ -178,6 +139,9 @@ int _wait_r(struct _reent *reent, int *status) {
 }
 
 ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len) {
+	if (file > 2) {
+		return fsnet_write(file, ptr, len);
+	}
 	ssize_t res = 0;
 
 	struct file *f = fd_file_get(file);
@@ -237,4 +201,60 @@ long sysconf(int name) {
 	}
 	errno = ENOSYS;
 	return 01;
+}
+
+int nanosleep(const struct timespec *rqtp, struct timespec *rmtp) {
+	svcSleepThread(rqtp->tv_nsec + (rqtp->tv_sec * 1000000000));
+	return 0;
+}
+
+int posix_memalign (void **memptr, size_t alignment, size_t size) {
+	void *mem;
+	
+	if (alignment % sizeof(void *) != 0 || (alignment & (alignment - 1)) != 0) {
+		return EINVAL;
+	}
+
+	mem = memalign(alignment, size);
+	
+	if (mem != NULL) {
+		*memptr = mem;
+		return 0;
+	}
+	
+	return ENOMEM;
+}
+
+int _rename_r(struct _reent *reent, const char *old, const char *new) {
+	// TODO: implement this
+	reent->_errno = EROFS;
+	return -1;
+}
+
+ssize_t readlink(const char *restrict path, char *restrict buf, size_t bufsize) {
+	errno = ENOSYS;
+	return -1;
+}
+
+char *realpath(const char *path, char *resolved_path) {
+	errno = ENOSYS;
+	return -1;
+}
+
+DIR *opendir(const char *name) {
+	return fsnet_opendir(name);
+}
+
+struct dirent *readdir(DIR *dirp) {
+	return fsnet_readdir(dirp);;
+}
+
+int closedir(DIR *dirp) {
+	free(dirp); // TODO: should be closed on remote machine properly
+	return 0;
+}
+
+int mkdir(const char *path, mode_t mode) {
+	errno = EROFS;
+	return -1;
 }
