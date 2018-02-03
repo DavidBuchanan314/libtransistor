@@ -66,8 +66,6 @@ WRITE:
 
 */
 
-static int fsnet_sock = -1;
-
 int fsnet_init(uint32_t remote_ip, uint16_t remote_port) {
 	if (fsnet_sock >= 0) {
 		return -1;

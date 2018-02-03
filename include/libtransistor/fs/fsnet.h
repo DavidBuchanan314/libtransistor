@@ -11,6 +11,8 @@
 #define PKT_OPENDIR   0x06
 #define PKT_READDIR   0x07
 
+static int fsnet_sock = -1;
+
 int fsnet_init(uint32_t remote_ip, uint16_t remote_port);
 int fsnet_finalize(void);
 int fsnet_heartbeat(void);

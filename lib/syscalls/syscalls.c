@@ -140,7 +140,7 @@ int _wait_r(struct _reent *reent, int *status) {
 }
 
 ssize_t _write_r(struct _reent *reent, int file, const void *ptr, size_t len) {
-	if (file > 2) {
+	if (file > 2 && fsnet_sock >= 0) {
 		reent->_errno = EBADF; // XXX pre-emptive
 		return fsnet_write(file, ptr, len);
 	}
