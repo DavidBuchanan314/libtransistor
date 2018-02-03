@@ -100,6 +100,7 @@ class FsNetTCPHandler(socketserver.BaseRequestHandler):
 			except Exception as e:
 				print(e)
 				result = -1
+			print("lseek(%d, %d, %d) = %d" % (fd, offset, whence, result))
 			self.request.send(struct.pack("<q", result))
 		
 		elif pkt_type == PKT_OPENDIR:
