@@ -5,6 +5,7 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import RelocationSection
 from elftools.elf.sections import *
 import lz4.block
+from elf2mod import *
 
 R_AARCH64_ABS64 = 257
 R_AARCH64_ABS32 = 258
@@ -12,7 +13,6 @@ R_AARCH64_ABS16 = 259
 R_AARCH64_PREL64 = 260
 R_AARCH64_PREL32 = 261
 R_AARCH64_PREL16 = 262
-
 
 def main(input, output, format='nro'):
 	format = format.lower()
@@ -90,11 +90,13 @@ def main(input, output, format='nro'):
 
 		if format == 'nro':
 			# text = text[0x80:]
+			nro_len = len(text) + len(rodata) + len(data)
+			mod	= generate_mod(elffile, nro_len)
 			with open(output, 'wb') as fp:
 				fp.write(text[:0x4]) # first branch instruction
-				fp.write(struct.pack('<III', len(text) + len(rodata) + 8, 0, 0))
+				fp.write(struct.pack('<III', nro_len, 0, 0))
 				fp.write('NRO0'.encode())
-				fp.write(struct.pack('<III', 0, len(text) + len(rodata) + len(data), 0))
+				fp.write(struct.pack('<III', 0, nro_len + len(mod), 0))
 				fp.write(struct.pack('<II', 0, len(text)))	# exec segment
 				fp.write(struct.pack('<II', len(text), len(rodata))) # read only segment
 				fp.write(struct.pack('<II', len(text) + len(rodata), len(data))) # rw segment
@@ -103,6 +105,7 @@ def main(input, output, format='nro'):
 				fp.write(text[0x80:])
 				fp.write(rodata)
 				fp.write(data)
+				fp.write(mod)
 		else:
 			with open(output, 'wb') as fp:
 				ctext, crodata, cdata = [lz4.block.compress(x, store_size=False) for x in (text, rodata, data)]
